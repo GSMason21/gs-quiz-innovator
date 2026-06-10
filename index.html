@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">Quiz | Getting Smart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & tokens ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:  #1c7293;
+      --accent:   #4cbecf;
+      --warm:     #F1DDCF;
+      --ink:      #1a1a2e;
+      --muted:    #6b7280;
+      --border:   #e5e7eb;
+      --surface:  #ffffff;
+      --bg:       #f8fafc;
+      --radius:   12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header strip ───────────────────────────────────────────────────── */
+    .site-header {
+      width: 100%;
+      background: var(--primary);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .site-header img { height: 32px; width: auto; }
+    .site-header span {
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
+    }
+
+    /* ── Main shell ─────────────────────────────────────────────────────── */
+    .quiz-shell {
+      width: 100%;
+      max-width: 680px;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Intro card ─────────────────────────────────────────────────────── */
+    .intro-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 40px 40px 36px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .intro-card h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      line-height: 1.2;
+      color: var(--primary);
+      margin-bottom: 14px;
+    }
+    .intro-card p {
+      font-size: 0.975rem;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 520px;
+      margin: 0 auto 28px;
+    }
+    .btn-start {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 13px 32px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-start:hover { background: var(--accent); }
+    .btn-start:active { transform: scale(0.98); }
+
+    /* ── Progress bar ───────────────────────────────────────────────────── */
+    .progress-wrap {
+      margin-bottom: 24px;
+      display: none;
+    }
+    .progress-wrap.visible { display: block; }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .progress-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    /* ── Question card ──────────────────────────────────────────────────── */
+    .question-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 36px 40px;
+      margin-bottom: 20px;
+      display: none;
+      animation: fadeUp 0.25s ease both;
+    }
+    .question-card.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .question-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .question-text {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 1.2rem;
+      line-height: 1.4;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .question-subtext {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    /* ── Single / multi options ─────────────────────────────────────────── */
+    .options-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+    .option-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .option-item:hover { border-color: var(--accent); background: #f0fafb; }
+    .option-item.selected {
+      border-color: var(--primary);
+      background: #eaf4f8;
+    }
+
+    .option-indicator {
+      width: 20px; height: 20px;
+      min-width: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      margin-top: 1px;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .option-item.selected .option-indicator {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .option-indicator::after {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: white;
+      display: none;
+    }
+    .option-item.selected .option-indicator::after { display: block; }
+
+    /* multi-select: square checkbox feel */
+    .multi .option-indicator { border-radius: 4px; }
+    .multi .option-item.selected .option-indicator::after {
+      width: 10px; height: 6px;
+      border-radius: 0;
+      background: transparent;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg) translate(1px, -1px);
+    }
+
+    .option-label { font-size: 0.93rem; line-height: 1.5; color: var(--ink); }
+
+    /* ── Contact form ───────────────────────────────────────────────────── */
+    .contact-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 36px 40px;
+      display: none;
+      animation: fadeUp 0.25s ease both;
+    }
+    .contact-card.active { display: block; }
+    .contact-card h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .contact-card p {
+      font-size: 0.87rem;
+      color: var(--muted);
+      margin-bottom: 26px;
+    }
+
+    .field-row { display: flex; gap: 14px; }
+    .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 18px; flex: 1; }
+    .field-group label { font-size: 0.8rem; font-weight: 600; color: var(--ink); }
+    .field-group input {
+      padding: 10px 12px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-family: inherit;
+      color: var(--ink);
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .field-group input:focus { border-color: var(--primary); }
+    .field-group input.error { border-color: #e53e3e; }
+    .field-error { font-size: 0.75rem; color: #e53e3e; display: none; }
+    .field-error.visible { display: block; }
+
+    /* ── Navigation ─────────────────────────────────────────────────────── */
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 28px;
+    }
+    .btn-back {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 8px 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-back:hover { color: var(--ink); }
+    .btn-next {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 11px 26px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-next:hover { background: var(--accent); }
+    .btn-next:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+    /* ── Result card ────────────────────────────────────────────────────── */
+    .result-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      text-align: center;
+      display: none;
+      animation: fadeUp 0.35s ease both;
+    }
+    .result-card.active { display: block; }
+
+    .result-badge {
+      display: inline-block;
+      background: var(--warm);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    .result-card h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(1.6rem, 4vw, 2rem);
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .result-tagline {
+      font-size: 1rem;
+      font-style: italic;
+      color: var(--accent);
+      margin-bottom: 22px;
+      font-family: 'DM Serif Display', Georgia, serif;
+    }
+    .result-description {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 520px;
+      margin: 0 auto 30px;
+    }
+    .result-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+    .result-confirmation {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .result-confirmation strong { color: var(--primary); }
+    .btn-cta {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 28px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-cta:hover { background: var(--accent); }
+
+    /* ── Error / loading states ─────────────────────────────────────────── */
+    .submit-error {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      border-radius: var(--radius-sm);
+      font-size: 0.87rem;
+      color: #c53030;
+      display: none;
+    }
+    .submit-error.visible { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Mobile ─────────────────────────────────────────────────────────── */
+    @media (max-width: 520px) {
+      .intro-card, .question-card, .contact-card, .result-card { padding: 28px 22px; }
+      .field-row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <img id="header-logo" src="" alt="Getting Smart" />
+  <span>Getting Smart</span>
+</header>
+
+<!-- Quiz shell -->
+<main class="quiz-shell" id="quiz-shell">
+
+  <!-- Intro -->
+  <div class="intro-card" id="intro-card">
+    <h1 id="quiz-title"></h1>
+    <p id="quiz-subtitle"></p>
+    <button class="btn-start" id="btn-start">Begin Quiz</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-meta">
+      <span id="progress-label">Question 1</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Questions rendered here by JS -->
+  <div id="questions-container"></div>
+
+  <!-- Contact form -->
+  <div class="contact-card" id="contact-card">
+    <h2>Almost there — tell us a bit about you</h2>
+    <p>Your innovator profile will be sent to your email.</p>
+    <div id="contact-fields-container"></div>
+    <div class="nav-row">
+      <button class="btn-back" id="contact-back">← Back</button>
+      <button class="btn-next" id="btn-submit">Send My Profile</button>
+    </div>
+    <div class="submit-error" id="submit-error"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+    <div class="result-badge">Your Innovator Profile</div>
+    <h2 id="result-label"></h2>
+    <div class="result-tagline" id="result-tagline"></div>
+    <p class="result-description" id="result-description"></p>
+    <div class="result-divider"></div>
+    <p class="result-confirmation" id="result-confirmation"></p>
+    <a href="#" class="btn-cta" id="result-cta"></a>
+  </div>
+
+</main>
+
+<!-- Config must load first -->
+<script src="quiz-config.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Apply config tokens ──────────────────────────────────────────────────
+  const C = QUIZ_CONFIG;
+  document.title = C.title + " | Getting Smart";
+  document.getElementById("quiz-title").textContent   = C.title;
+  document.getElementById("quiz-subtitle").textContent = C.subtitle;
+  document.getElementById("header-logo").src           = C.logoUrl;
+  document.documentElement.style.setProperty("--primary", C.primaryColor);
+  document.documentElement.style.setProperty("--accent",  C.accentColor);
+  document.documentElement.style.setProperty("--warm",    C.warmColor);
+
+  // ── State ────────────────────────────────────────────────────────────────
+  const answers = {};          // { q1: "option label" | ["label1","label2"], ... }
+  let currentQ  = -1;          // -1 = intro, 0..n-1 = questions, n = contact
+
+  const totalSteps = C.questions.length + 1; // questions + contact
+
+  // ── Render questions ─────────────────────────────────────────────────────
+  const container = document.getElementById("questions-container");
+
+  C.questions.forEach((q, idx) => {
+    const card = document.createElement("div");
+    card.className = "question-card";
+    card.id = `qcard-${idx}`;
+
+    const isMulti = q.type === "multi";
+
+    card.innerHTML = `
+      <div class="question-label">Question ${idx + 1} of ${C.questions.length}</div>
+      <div class="question-text">${q.text}</div>
+      ${q.subtext ? `<div class="question-subtext">${q.subtext}</div>` : ""}
+      <ul class="options-list ${isMulti ? "multi" : "single"}" id="opts-${idx}" role="listbox" aria-multiselectable="${isMulti}">
+        ${q.options.map((opt, oi) => `
+          <li class="option-item" data-qidx="${idx}" data-oidx="${oi}" role="option" tabindex="0" aria-selected="false">
+            <span class="option-indicator"></span>
+            <span class="option-label">${opt.label}</span>
+          </li>
+        `).join("")}
+      </ul>
+      <div class="nav-row">
+        <button class="btn-back q-back" data-qidx="${idx}">← Back</button>
+        <button class="btn-next q-next" data-qidx="${idx}" ${q.required ? "disabled" : ""}>
+          ${idx === C.questions.length - 1 ? "Continue" : "Next"}
+        </button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  // ── Render contact fields ────────────────────────────────────────────────
+  const contactContainer = document.getElementById("contact-fields-container");
+  const fieldPairs = [];
+
+  for (let i = 0; i < C.contactFields.length; i += 2) {
+    const row = document.createElement("div");
+    row.className = "field-row";
+
+    [C.contactFields[i], C.contactFields[i + 1]].filter(Boolean).forEach(f => {
+      const g = document.createElement("div");
+      g.className = "field-group";
+      g.innerHTML = `
+        <label for="cf-${f.id}">${f.label}${f.required ? ' <span style="color:#e53e3e">*</span>' : ""}</label>
+        <input type="${f.type}" id="cf-${f.id}" name="${f.id}" autocomplete="${f.type === "email" ? "email" : "off"}" />
+        <span class="field-error" id="err-${f.id}">This field is required.</span>
+      `;
+      row.appendChild(g);
+    });
+    contactContainer.appendChild(row);
+  }
+
+  // ── Navigation helpers ───────────────────────────────────────────────────
+  function showStep(step) {
+    // step: -1=intro, 0..n-1=question, n=contact, n+1=result
+    const n = C.questions.length;
+
+    document.getElementById("intro-card").style.display    = step === -1 ? "" : "none";
+    document.getElementById("progress-wrap").classList.toggle("visible", step >= 0 && step <= n);
+    document.getElementById("contact-card").classList.toggle("active", step === n);
+    document.getElementById("result-card").classList.toggle("active", step === n + 1);
+
+    document.querySelectorAll(".question-card").forEach((el, i) => {
+      el.classList.toggle("active", i === step);
+    });
+
+    if (step >= 0 && step <= n) {
+      const pct = Math.round((step / totalSteps) * 100);
+      document.getElementById("progress-fill").style.width = pct + "%";
+      document.getElementById("progress-pct").textContent  = pct + "%";
+      document.getElementById("progress-label").textContent =
+        step < n ? `Question ${step + 1} of ${n}` : "Almost done";
+    }
+
+    currentQ = step;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ── Option selection ─────────────────────────────────────────────────────
+  container.addEventListener("click", e => {
+    const item = e.target.closest(".option-item");
+    if (!item) return;
+
+    const qidx = parseInt(item.dataset.qidx);
+    const oidx = parseInt(item.dataset.oidx);
+    const q    = C.questions[qidx];
+    const list = document.getElementById(`opts-${qidx}`);
+    const nextBtn = document.querySelector(`.q-next[data-qidx="${qidx}"]`);
+
+    if (q.type === "single") {
+      list.querySelectorAll(".option-item").forEach(el => {
+        el.classList.remove("selected");
+        el.setAttribute("aria-selected", "false");
+      });
+      item.classList.add("selected");
+      item.setAttribute("aria-selected", "true");
+      answers[q.id] = q.options[oidx].label;
+      nextBtn.disabled = false;
+
+    } else if (q.type === "multi") {
+      item.classList.toggle("selected");
+      const selected = Array.from(list.querySelectorAll(".option-item.selected"))
+        .map(el => q.options[parseInt(el.dataset.oidx)].label);
+      answers[q.id] = selected;
+      if (!q.required) nextBtn.disabled = false;
+      else nextBtn.disabled = selected.length === 0;
+    }
+  });
+
+  // Keyboard support
+  container.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.target.closest(".option-item")?.click();
+    }
+  });
+
+  // ── Next / Back wiring ───────────────────────────────────────────────────
+  document.getElementById("btn-start").addEventListener("click", () => showStep(0));
+
+  container.addEventListener("click", e => {
+    const next = e.target.closest(".q-next");
+    const back = e.target.closest(".q-back");
+    if (next && !next.disabled) {
+      const idx = parseInt(next.dataset.qidx);
+      showStep(idx === C.questions.length - 1 ? C.questions.length : idx + 1);
+    }
+    if (back) {
+      const idx = parseInt(back.dataset.qidx);
+      showStep(idx === 0 ? -1 : idx - 1);
+    }
+  });
+
+  document.getElementById("contact-back").addEventListener("click", () =>
+    showStep(C.questions.length - 1)
+  );
+
+  // ── Scoring ──────────────────────────────────────────────────────────────
+  function scoreQuiz() {
+    const tally = {};
+
+    C.questions.forEach(q => {
+      const val = answers[q.id];
+      if (!val) return;
+
+      const vals = Array.isArray(val) ? val : [val];
+      vals.forEach(label => {
+        const opt = q.options.find(o => o.label === label);
+        if (!opt) return;
+
+        if (C.scoringMethod === "profile") {
+          tally[opt.profile] = (tally[opt.profile] || 0) + 1;
+        } else {
+          // weighted — sum points into a single "score" key
+          tally._score = (tally._score || 0) + (opt.points || 0);
+        }
+      });
+    });
+
+    if (C.scoringMethod === "weighted") {
+      const score = tally._score || 0;
+      // find profile whose `minScore` threshold is highest but ≤ score
+      const profiles = Object.values(C.profiles).sort((a, b) => b.minScore - a.minScore);
+      return (profiles.find(p => score >= (p.minScore || 0)) || C.profiles[C.fallbackProfile]).key;
+    }
+
+    // profile mode — highest count wins
+    const winner = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+    return winner ? winner[0] : C.fallbackProfile;
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────
+  document.getElementById("btn-submit").addEventListener("click", async () => {
+    // Validate contact fields
+    let valid = true;
+    const contactData = {};
+
+    C.contactFields.forEach(f => {
+      const el  = document.getElementById(`cf-${f.id}`);
+      const err = document.getElementById(`err-${f.id}`);
+      const val = el.value.trim();
+      el.classList.remove("error");
+      err.classList.remove("visible");
+
+      if (f.required && !val) {
+        el.classList.add("error");
+        err.classList.add("visible");
+        valid = false;
+      } else {
+        contactData[f.id] = val;
+      }
+    });
+
+    if (!valid) return;
+
+    const profileKey = scoreQuiz();
+    const profile    = C.profiles[profileKey] || C.profiles[C.fallbackProfile];
+
+    // Loading state
+    const btn = document.getElementById("btn-submit");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Sending…';
+
+    const errEl = document.getElementById("submit-error");
+    errEl.classList.remove("visible");
+
+    try {
+      const res = await fetch("/api/submit", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email:      contactData.email,
+          firstName:  contactData.firstName,
+          lastName:   contactData.lastName,
+          org:        contactData.org       || "",
+          title:      contactData.title     || "",
+          profileKey: profile.key,
+          mcTag:      profile.mcTag,
+          answers,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Submission failed");
+
+      // Show result
+      document.getElementById("result-label").textContent       = profile.label;
+      document.getElementById("result-tagline").textContent     = profile.tagline;
+      document.getElementById("result-description").textContent = profile.description;
+      document.getElementById("result-confirmation").innerHTML  =
+        `${C.confirmationMessage} We sent it to <strong>${contactData.email}</strong>.`;
+      const cta = document.getElementById("result-cta");
+      cta.textContent = C.resultCta.text;
+      cta.href        = C.resultCta.url;
+
+      showStep(C.questions.length + 1);
+
+    } catch (err) {
+      errEl.textContent = "Something went wrong — please try again. (" + err.message + ")";
+      errEl.classList.add("visible");
+      btn.disabled = false;
+      btn.innerHTML = "Send My Profile";
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
